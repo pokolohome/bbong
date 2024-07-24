@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게임 점수판</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        }
+        .game-button {
+            background: none;
+            border: none;
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 20px;
+            z-index: 1000;
+        }
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>게임 점수판</h1>
+    <div>
+        <label>플레이어 수: </label>
+        <select id="playerCount" onchange="generateTable()">
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+        </select>
+        <button onclick="openPlayerNamePopup()">플레이어 이름 입력</button>
+    </div>
+    
+    <table id="scoreboard">
+        <tbody id="scoreTable">
+            <tr>
+                <th>월</th>
+                <!-- 플레이어 헤더가 여기에 동적으로 추가될 예정 -->
+            </tr>
+            <!-- 점수 입력 행이 동적으로 생성될 예정 -->
+        </tbody>
+        <tfoot>
+            <tr id="totalRow">
+                <th>총 합계</th>
+                <!-- 플레이어 총 합계가 여기에 동적으로 추가될 예정 -->
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="popup-overlay" id="popupOverlay"></div>
+    <div class="popup" id="scorePopup">
+        <h2>점수 입력</h2>
+        <div id="popupContent">
+            <!-- 점수 입력 필드가 여기에 동적으로 생성 -->
+        </div>
+        <button onclick="saveScores()">저장</button>
+        <button onclick="closePopup()">취소</button>
+    </div>
+
+    <div class="popup" id="playerNamePopup">
+        <h2>플레이어 이름 입력</h2>
+        <div id="playerNameContent">
+            <!-- 플레이어 이름 입력 필드가 여기에 동적으로 생성 -->
+        </div>
+        <button onclick="savePlayerNames()">저장</button>
+        <button onclick="closePlayerNamePopup()">취소</button>
+    </div>
+
+    <script>
+        const miniGameCount = 12;
+        let playerCount = 3;
+        const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+
+        function generateTable() {
+            playerCount = parseInt(document.getElementById('playerCount').value, 10);
+            generateScoreboardHeader();
+            generateScoreboardBody();
+        }
+
+        function openPlayerNamePopup() {
+            const popup = document.getElementById('playerNamePopup');
+            const overlay = document.getElementById('popupOverlay');
+            const playerNameContent = document.getElementById('playerNameContent');
+
+            playerNameContent.innerHTML = '';
+            for (let i = 1; i <= playerCount; i++) {
+                playerNameContent.innerHTML += `<label>플레이어 ${i} 이름: </label><input type="text" id="player${i}NameInput" value="플레이어 ${i}"><br>`;
+            }
+
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closePlayerNamePopup() {
+            const popup = document.getElementById('playerNamePopup');
+            const overlay = document.getElementById('popupOverlay');
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        function savePlayerNames() {
+            for (let i = 1; i <= playerCount; i++) {
+                const playerName = document.getElementById(`player${i}NameInput`).value;
+                document.getElementById(`headerPlayer${i}`).innerText = playerName;
+            }
+            closePlayerNamePopup();
+        }
+
+        function generateScoreboardHeader() {
+            const scoreTable = document.getElementById('scoreTable');
+            let headerRow = scoreTable.rows[0];
+            headerRow.innerHTML = `<th>월</th>`;
+            for (let i = 1; i <= playerCount; i++) {
+                headerRow.innerHTML += `<th id="headerPlayer${i}">플레이어 ${i}</th>`;
+            }
+        }
+
+        function generateScoreboardBody() {
+            const scoreTable = document.getElementById('scoreTable');
+            // 헤더를 제외한 모든 기존 행 삭제
+            scoreTable.innerHTML = scoreTable.rows[0].outerHTML; // 헤더 행만 유지하고 나머지 삭제
+            for (let i = 1; i <= miniGameCount; i++) {
+                let row = document.createElement('tr');
+                row.innerHTML = `<td><button class="game-button" onclick="openPopup(${i})">${monthNames[i - 1]}</button></td>`;
+                for (let j = 1; j <= playerCount; j++) {
+                    row.innerHTML += `<td id="game${i}player${j}Score">0</td>`;
+                }
+                scoreTable.appendChild(row);
+            }
+            generateScoreboardFooter();
+        }
+
+        function generateScoreboardFooter() {
+            const totalRow = document.getElementById('totalRow');
+            totalRow.innerHTML = '<th>총 합계</th>';
+            for (let i = 1; i <= playerCount; i++) {
+                totalRow.innerHTML += `<td id="totalPlayer${i}">0</td>`;
+            }
+        }
+
+        function openPopup(gameIndex) {
+            const popup = document.getElementById('scorePopup');
+            const overlay = document.getElementById('popupOverlay');
+            const popupContent = document.getElementById('popupContent');
+
+            popupContent.innerHTML = '';
+            for (let i = 1; i <= playerCount; i++) {
+                const playerName = document.getElementById(`headerPlayer${i}`).innerText;
+                popupContent.innerHTML += `<label>${playerName} 점수: </label><input type="number" id="popupGame${gameIndex}Player${i}"><br>`;
+            }
+
+            popup.dataset.gameIndex = gameIndex;
+            popup.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closePopup() {
+            const popup = document.getElementById('scorePopup');
+            const overlay = document.getElementById('popupOverlay');
+            popup.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+
+        function saveScores() {
+            const gameIndex = document.getElementById('scorePopup').dataset.gameIndex;
+            for (let i = 1; i <= playerCount; i++) {
+                const score = parseInt(document.getElementById(`popupGame${gameIndex}Player${i}`).value) || 0;
+                document.getElementById(`game${gameIndex}player${i}Score`).innerText = score;
+            }
+            updateTotals();
+            closePopup();
+        }
+
+        function updateTotals() {
+            for (let i = 1; i <= playerCount; i++) {
+                let total = 0;
+                for (let j = 1; j <= miniGameCount; j++) {
+                    let score = parseInt(document.getElementById(`game${j}player${i}Score`).innerText) || 0;
+                    total += score;
+                }
+                document.getElementById(`totalPlayer${i}`).innerText = total;
+            }
+        }
+
+        // 초기 테이블 생성
+        generateTable();
+    </script>
+</body>
+</html>
