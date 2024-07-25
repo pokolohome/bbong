@@ -13,7 +13,7 @@
             border: 1px solid black;
             padding: 10px;
             text-align: center;
-            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+            white-space: nowrap;
         }
         .game-button {
             background: none;
@@ -43,6 +43,9 @@
             background: rgba(0,0,0,0.5);
             z-index: 999;
         }
+        .control-buttons {
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -57,7 +60,10 @@
         </select>
         <button onclick="openPlayerNamePopup()">플레이어 이름 입력</button>
     </div>
-    
+    <div class="control-buttons">
+        <button onclick="resetPlayers()">플레이어 초기화</button>
+        <button onclick="resetScores()">점수 초기화</button>
+    </div>
     <table id="scoreboard">
         <tbody id="scoreTable">
             <tr>
@@ -97,11 +103,20 @@
         const miniGameCount = 12;
         let playerCount = 3;
         const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+        const scoreDataKey = 'scoreData';
+        const playerNamesKey = 'playerNames';
+
+        window.onload = function() {
+            generateTable();
+            loadPlayerNames();
+            loadScores();
+        };
 
         function generateTable() {
             playerCount = parseInt(document.getElementById('playerCount').value, 10);
             generateScoreboardHeader();
             generateScoreboardBody();
+            generateScoreboardFooter();
         }
 
         function openPlayerNamePopup() {
@@ -110,8 +125,10 @@
             const playerNameContent = document.getElementById('playerNameContent');
 
             playerNameContent.innerHTML = '';
+            let playerNames = loadPlayerNamesData();
             for (let i = 1; i <= playerCount; i++) {
-                playerNameContent.innerHTML += `<label>플레이어 ${i} 이름: </label><input type="text" id="player${i}NameInput" value="플레이어 ${i}"><br>`;
+                let playerName = playerNames[i] || `플레이어 ${i}`;
+                playerNameContent.innerHTML += `<label>플레이어 ${i} 이름: </label><input type="text" id="player${i}NameInput" value="${playerName}"><br>`;
             }
 
             popup.style.display = 'block';
@@ -126,10 +143,13 @@
         }
 
         function savePlayerNames() {
+            let playerNames = {};
             for (let i = 1; i <= playerCount; i++) {
                 const playerName = document.getElementById(`player${i}NameInput`).value;
+                playerNames[i] = playerName;
                 document.getElementById(`headerPlayer${i}`).innerText = playerName;
             }
+            localStorage.setItem(playerNamesKey, JSON.stringify(playerNames));
             closePlayerNamePopup();
         }
 
@@ -144,7 +164,6 @@
 
         function generateScoreboardBody() {
             const scoreTable = document.getElementById('scoreTable');
-            // 헤더를 제외한 모든 기존 행 삭제
             scoreTable.innerHTML = scoreTable.rows[0].outerHTML; // 헤더 행만 유지하고 나머지 삭제
             for (let i = 1; i <= miniGameCount; i++) {
                 let row = document.createElement('tr');
@@ -154,7 +173,6 @@
                 }
                 scoreTable.appendChild(row);
             }
-            generateScoreboardFooter();
         }
 
         function generateScoreboardFooter() {
@@ -190,27 +208,73 @@
 
         function saveScores() {
             const gameIndex = document.getElementById('scorePopup').dataset.gameIndex;
+            let scores = loadScoresData();
+
             for (let i = 1; i <= playerCount; i++) {
                 const score = parseInt(document.getElementById(`popupGame${gameIndex}Player${i}`).value) || 0;
                 document.getElementById(`game${gameIndex}player${i}Score`).innerText = score;
+
+                if (!scores[i]) scores[i] = {};
+                scores[i][gameIndex] = score;
             }
+
+            localStorage.setItem(scoreDataKey, JSON.stringify(scores));
             updateTotals();
             closePopup();
         }
 
         function updateTotals() {
+            let scores = loadScoresData();
             for (let i = 1; i <= playerCount; i++) {
                 let total = 0;
                 for (let j = 1; j <= miniGameCount; j++) {
-                    let score = parseInt(document.getElementById(`game${j}player${i}Score`).innerText) || 0;
-                    total += score;
+                    total += scores[i]?.[j] || 0;
                 }
                 document.getElementById(`totalPlayer${i}`).innerText = total;
             }
         }
 
-        // 초기 테이블 생성
-        generateTable();
+        function loadScoresData() {
+            return JSON.parse(localStorage.getItem(scoreDataKey)) || {};
+        }
+
+        function loadScores() {
+            let scores = loadScoresData();
+            for (let i = 1; i <= playerCount; i++) {
+                for (let j = 1; j <= miniGameCount; j++) {
+                    if (scores[i] && scores[i][j] !== undefined) {
+                        document.getElementById(`game${j}player${i}Score`).innerText = scores[i][j];
+                    }
+                }
+            }
+            updateTotals();
+        }
+
+        function loadPlayerNamesData() {
+            return JSON.parse(localStorage.getItem(playerNamesKey)) || {};
+        }
+
+        function loadPlayerNames() {
+            let playerNames = loadPlayerNamesData();
+            for (let i = 1; i <= playerCount; i++) {
+                const playerName = playerNames[i] || `플레이어 ${i}`;
+                document.getElementById(`headerPlayer${i}`).innerText = playerName;
+            }
+        }
+
+        function resetPlayers() {
+            if (confirm("플레이어 이름을 초기화하시겠습니까?")) {
+                localStorage.removeItem(playerNamesKey);
+                loadPlayerNames();
+            }
+        }
+
+        function resetScores() {
+            if (confirm("모든 점수를 초기화하시겠습니까?")) {
+                localStorage.removeItem(scoreDataKey);
+                loadScores();
+            }
+        }
     </script>
 </body>
 </html>
