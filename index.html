@@ -46,13 +46,22 @@
         .control-buttons {
             margin: 10px 0;
         }
+        @media (max-width: 600px) {
+            table, th, td {
+                font-size: 0.8em;
+            }
+            .control-buttons button {
+                width: 100%;
+                margin-top: 5px;
+            }
+        }
     </style>
 </head>
 <body>
     <h1>게임 점수판</h1>
     <div>
         <label>플레이어 수: </label>
-        <select id="playerCount" onchange="generateTable()">
+        <select id="playerCount" onchange="generateTable(); savePlayerCount();">
             <option value="3">3</option>
             <option value="4">4</option>
             <option value="5">5</option>
@@ -105,12 +114,26 @@
         const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
         const scoreDataKey = 'scoreData';
         const playerNamesKey = 'playerNames';
+        const playerCountKey = 'playerCount';
 
         window.onload = function() {
+            loadPlayerCount();
             generateTable();
             loadPlayerNames();
             loadScores();
         };
+
+        function savePlayerCount() {
+            localStorage.setItem(playerCountKey, playerCount);
+        }
+
+        function loadPlayerCount() {
+            const storedPlayerCount = localStorage.getItem(playerCountKey);
+            if (storedPlayerCount) {
+                playerCount = parseInt(storedPlayerCount, 10);
+                document.getElementById('playerCount').value = playerCount;
+            }
+        }
 
         function generateTable() {
             playerCount = parseInt(document.getElementById('playerCount').value, 10);
@@ -263,9 +286,10 @@
         }
 
         function resetPlayers() {
-            if (confirm("플레이어 이름을 초기화하시겠습니까?")) {
+            if (confirm("플레이어 이름과 수를 초기화하시겠습니까?")) {
                 localStorage.removeItem(playerNamesKey);
-                loadPlayerNames();
+                localStorage.removeItem(playerCountKey);
+                location.reload();
             }
         }
 
